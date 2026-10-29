@@ -1,0 +1,139 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Yan",
+  "scopeName": "source.yan",
+  "fileTypes": ["yan"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#fn-definition" },
+    { "include": "#constexpr-name" },
+    { "include": "#keywords" },
+    { "include": "#reserved" },
+    { "include": "#intrinsics" },
+    { "include": "#types" },
+    { "include": "#numbers" },
+    { "include": "#strings" },
+    { "include": "#function-call" },
+    { "include": "#operators" },
+    { "include": "#punctuation" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.yan",
+          "begin": "//",
+          "end": "$"
+        },
+        {
+          "name": "comment.block.yan",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.yan",
+          "match": "\\b(if|else|while|loop|for|in|return|break|continue)\\b"
+        },
+        {
+          "name": "keyword.declaration.yan",
+          "match": "\\b(fn|let|mut|constexpr|as)\\b"
+        },
+        {
+          "name": "constant.language.yan",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    },
+    "reserved": {
+      "name": "keyword.other.reserved.yan",
+      "match": "\\b(struct|class|enum|match|impl|trait|pub|mod|use|static|self|Self|new|delete|nullptr)\\b"
+    },
+    "intrinsics": {
+      "name": "support.function.builtin.yan",
+      "match": "\\b(println|print|len)\\b"
+    },
+    "types": {
+      "name": "storage.type.yan",
+      "match": "\\b(i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|bool)\\b"
+    },
+    "fn-definition": {
+      "match": "\\b(fn)\\s+([A-Za-z_]\\w*)",
+      "captures": {
+        "1": { "name": "keyword.declaration.yan" },
+        "2": { "name": "entity.name.function.yan" }
+      }
+    },
+    "constexpr-name": {
+      "match": "\\b(constexpr)\\s+(fn\\s+)?([A-Za-z_]\\w*)(?=\\s*:)",
+      "captures": {
+        "1": { "name": "keyword.declaration.yan" },
+        "2": { "name": "keyword.declaration.yan" },
+        "3": { "name": "entity.name.constant.yan" }
+      }
+    },
+    "numbers": {
+      "match": "\\b(?:(0[xX][0-9a-fA-F_]+)|(0[bB][01_]+)|(0[oO][0-7_]+)|([0-9][0-9_]*(?:\\.[0-9][0-9_]*)?(?:[eE][+-]?[0-9]+)?))((?:i8|i16|i32|i64|u8|u16|u32|u64|f32|f64))?\\b",
+      "captures": {
+        "1": { "name": "constant.numeric.hex.yan" },
+        "2": { "name": "constant.numeric.binary.yan" },
+        "3": { "name": "constant.numeric.octal.yan" },
+        "4": { "name": "constant.numeric.decimal.yan" },
+        "5": { "name": "storage.type.numeric.yan" }
+      }
+    },
+    "strings": {
+      "name": "string.quoted.double.yan",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "include": "#escapes" }
+      ]
+    },
+    "escapes": {
+      "name": "constant.character.escape.yan",
+      "match": "\\\\(?:[ntr0\\\\\"']|x[0-9a-fA-F]{2})"
+    },
+    "function-call": {
+      "match": "\\b(?!(?:if|else|while|loop|for|in|return|break|continue|as|fn|let|mut|constexpr|true|false|i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|bool)\\b)([A-Za-z_]\\w*)(?=\\s*\\()",
+      "captures": {
+        "1": { "name": "variable.function.yan" }
+      }
+    },
+    "operators": {
+      "match": "(->)|(\\.\\.=)|(\\.\\.)|(<<=|>>=)|(==|!=|<=|>=)|(&&|\\|\\|)|(<<|>>)|(\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=)|([+\\-*/%=<>!&|^~])",
+      "captures": {
+        "1": { "name": "keyword.operator.arrow.yan" },
+        "2": { "name": "keyword.operator.range.yan" },
+        "3": { "name": "keyword.operator.range.yan" },
+        "4": { "name": "keyword.operator.assignment.compound.yan" },
+        "5": { "name": "keyword.operator.comparison.yan" },
+        "6": { "name": "keyword.operator.logical.yan" },
+        "7": { "name": "keyword.operator.bitwise.shift.yan" },
+        "8": { "name": "keyword.operator.assignment.compound.yan" },
+        "9": { "name": "keyword.operator.yan" }
+      }
+    },
+    "punctuation": {
+      "patterns": [
+        { "match": "\\{", "name": "punctuation.section.block.begin.yan" },
+        { "match": "\\}", "name": "punctuation.section.block.end.yan" },
+        { "match": "\\(", "name": "punctuation.section.parens.begin.yan" },
+        { "match": "\\)", "name": "punctuation.section.parens.end.yan" },
+        { "match": "\\[", "name": "punctuation.section.brackets.begin.yan" },
+        { "match": "\\]", "name": "punctuation.section.brackets.end.yan" },
+        { "match": ",", "name": "punctuation.separator.comma.yan" },
+        { "match": ";", "name": "punctuation.terminator.statement.yan" },
+        { "match": ":", "name": "punctuation.separator.type.yan" }
+      ]
+    },
+    "identifiers": {
+      "name": "variable.other.yan",
+      "match": "\\b[A-Za-z_]\\w*\\b"
+    }
+  }
+}

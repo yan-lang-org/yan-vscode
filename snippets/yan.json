@@ -1,0 +1,82 @@
+{
+  "main": {
+    "prefix": "main",
+    "body": ["fn main() {", "\t$0", "}"],
+    "description": "程序入口 fn main()"
+  },
+  "fn": {
+    "prefix": "fn",
+    "body": ["fn ${1:name}(${2:x}: ${3:i32}) -> ${4:i32} {", "\t$0", "}"],
+    "description": "函数定义"
+  },
+  "fn mut ref": {
+    "prefix": "fnref",
+    "body": ["fn ${1:name}(${2:x}: &mut ${3:i32}) {", "\t$0", "}"],
+    "description": "带 &mut 引用参数的函数"
+  },
+  "constexpr fn": {
+    "prefix": "cfn",
+    "body": ["constexpr fn ${1:name}(${2:n}: i32) -> ${3:i64} {", "\t$0", "}"],
+    "description": "编译期求值函数"
+  },
+  "constexpr var": {
+    "prefix": "cst",
+    "body": ["constexpr ${1:NAME}: ${2:i32} = ${3:0};"],
+    "description": "编译期常量"
+  },
+  "constexpr if": {
+    "prefix": "cif",
+    "body": ["constexpr if (${1:cond}) {", "\t$0", "} else {", "\t", "}"],
+    "description": "条件编译（未选中分支不生成代码，但仍过类型检查）"
+  },
+  "if": {
+    "prefix": "if",
+    "body": ["if (${1:cond}) {", "\t$0", "}"],
+    "description": "if 分支（条件是表达式）"
+  },
+  "if else": {
+    "prefix": "ifelse",
+    "body": ["if (${1:cond}) {", "\t$2", "} else {", "\t$0", "}"],
+    "description": "if / else 分支"
+  },
+  "while": {
+    "prefix": "while",
+    "body": ["while (${1:cond}) {", "\t$0", "}"],
+    "description": "while 循环"
+  },
+  "for range": {
+    "prefix": "for",
+    "body": ["for (${1:i} in ${2:0}..${3:n}) {", "\t$0", "}"],
+    "description": "for 区间循环（.. 不含末尾，..= 含末尾）"
+  },
+  "loop": {
+    "prefix": "loop",
+    "body": ["loop {", "\t$0", "}"],
+    "description": "无限循环"
+  },
+  "let mut": {
+    "prefix": "letm",
+    "body": ["let mut ${1:x}: ${2:i32} = ${3:0};"],
+    "description": "可变变量绑定"
+  },
+  "println": {
+    "prefix": "println",
+    "body": ["println(\"${1:}\\n\", ${2:x});"],
+    "description": "打印（{} 是占位符，不是宏）"
+  },
+  "bit slice read": {
+    "prefix": "bits",
+    "body": ["${1:reg}[${2:hi}:${3:lo}]"],
+    "description": "取位段（含两端，bit 0 是最低位）"
+  },
+  "bit slice write": {
+    "prefix": "bitsw",
+    "body": ["${1:reg}[${2:hi}:${3:lo}] = ${4:0};"],
+    "description": "写位段（只改这几位，其余保持原样）"
+  },
+  "array": {
+    "prefix": "arr",
+    "body": ["let ${1:a}: [${2:i32}; ${3:N}] = [$0];"],
+    "description": "定长数组"
+  }
+}

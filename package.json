@@ -1,0 +1,93 @@
+{
+  "name": "yan",
+  "displayName": "砚 Yan 语言",
+  "description": "砚 Yan 语言的语法高亮与格式化支持（.yan）",
+  "version": "0.1.0",
+  "publisher": "yanlang",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "keywords": [
+    "yan",
+    "砚",
+    "yanc"
+  ],
+  "icon": "images/icon.png",
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:yan"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "yan",
+        "aliases": [
+          "Yan",
+          "yan",
+          "砚 Yan"
+        ],
+        "extensions": [
+          ".yan"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "yan",
+        "scopeName": "source.yan",
+        "path": "./syntaxes/yan.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "yan",
+        "path": "./snippets/yan.json"
+      }
+    ],
+    "configuration": {
+      "title": "砚 Yan",
+      "properties": {
+        "yan.format.maxBlankLines": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 8,
+          "description": "格式化时最多保留的连续空行数（多余的空行会被压缩到此值）。"
+        },
+        "yan.format.alignTrailingComments": {
+          "type": "boolean",
+          "default": true,
+          "description": "把相邻若干行的行尾注释对齐到同一列（超出 yan.format.maxColumn 时自动放弃对齐）。"
+        },
+        "yan.format.maxColumn": {
+          "type": "integer",
+          "default": 100,
+          "minimum": 40,
+          "maximum": 400,
+          "description": "行尾注释对齐时允许达到的最大列宽。"
+        },
+        "yan.format.keepSingleLineBlocks": {
+          "type": "boolean",
+          "default": true,
+          "description": "保留源码里写在一行内的块（如 `if (n <= 0) { 1 } else { 2 * f(n - 1) }`），不展开成多行。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.3.3"
+  }
+}

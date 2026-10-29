@@ -1,0 +1,4 @@
+node_modules/
+*.vsix
+
+# dist/ 是提交的：让别人 clone 下来直接就能装，不用先 npm install
