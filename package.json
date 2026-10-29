@@ -1,10 +1,17 @@
 {
   "name": "yan",
   "displayName": "砚 Yan 语言",
-  "description": "砚 Yan 语言的语法高亮与格式化支持（.yan）",
-  "version": "0.1.0",
+  "description": "砚 Yan 语言的语法高亮与格式化支持（.yan，对齐 yan 0.11）",
+  "version": "0.2.0",
   "publisher": "yanlang",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yan-lang-org/yan-vscode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yan-lang-org/yan-vscode/issues"
+  },
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -15,7 +22,8 @@
   "keywords": [
     "yan",
     "砚",
-    "yanc"
+    "yanc",
+    "formatter"
   ],
   "icon": "images/icon.png",
   "main": "./dist/extension.js",
@@ -83,7 +91,11 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "vscode:prepublish": "tsc -p ./"
+    "vscode:prepublish": "tsc -p ./",
+    "verify": "node tools/verify.js",
+    "verify:full": "node tools/verify.js --full",
+    "highlight": "node tools/highlight-check.js",
+    "package": "npx --yes @vscode/vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

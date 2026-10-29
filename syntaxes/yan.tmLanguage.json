@@ -5,17 +5,24 @@
   "fileTypes": ["yan"],
   "patterns": [
     { "include": "#comments" },
+    { "include": "#char-literal" },
+    { "include": "#lifetime" },
     { "include": "#fn-definition" },
-    { "include": "#constexpr-name" },
+    { "include": "#type-definition" },
+    { "include": "#use-path" },
+    { "include": "#comptime-name" },
     { "include": "#keywords" },
     { "include": "#reserved" },
     { "include": "#intrinsics" },
+    { "include": "#prelude-types" },
     { "include": "#types" },
     { "include": "#numbers" },
     { "include": "#strings" },
+    { "include": "#enum-variant" },
     { "include": "#function-call" },
     { "include": "#operators" },
     { "include": "#punctuation" },
+    { "include": "#type-name" },
     { "include": "#identifiers" }
   ],
   "repository": {
@@ -26,55 +33,86 @@
           "begin": "//",
           "end": "$"
         },
-        {
-          "name": "comment.block.yan",
-          "begin": "/\\*",
-          "end": "\\*/"
-        }
+        { "include": "#block-comment" }
       ]
     },
-    "keywords": {
-      "patterns": [
-        {
-          "name": "keyword.control.yan",
-          "match": "\\b(if|else|while|loop|for|in|return|break|continue)\\b"
-        },
-        {
-          "name": "keyword.declaration.yan",
-          "match": "\\b(fn|let|mut|constexpr|as)\\b"
-        },
-        {
-          "name": "constant.language.yan",
-          "match": "\\b(true|false)\\b"
-        }
-      ]
+    "block-comment": {
+      "name": "comment.block.yan",
+      "begin": "/\\*",
+      "end": "\\*/",
+      "patterns": [{ "include": "#block-comment" }]
     },
-    "reserved": {
-      "name": "keyword.other.reserved.yan",
-      "match": "\\b(struct|class|enum|match|impl|trait|pub|mod|use|static|self|Self|new|delete|nullptr)\\b"
+    "char-literal": {
+      "name": "string.quoted.single.char.yan",
+      "match": "'(?:\\\\(?:[ntr0\\\\\"']|x[0-9a-fA-F]{2}|u\\{[0-9a-fA-F]{1,6}\\})|[^'\\\\\\n])'"
     },
-    "intrinsics": {
-      "name": "support.function.builtin.yan",
-      "match": "\\b(println|print|len)\\b"
-    },
-    "types": {
-      "name": "storage.type.yan",
-      "match": "\\b(i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|bool)\\b"
+    "lifetime": {
+      "name": "storage.modifier.lifetime.yan",
+      "match": "'[A-Za-z_][A-Za-z0-9_]*"
     },
     "fn-definition": {
-      "match": "\\b(fn)\\s+([A-Za-z_]\\w*)",
+      "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
       "captures": {
         "1": { "name": "keyword.declaration.yan" },
         "2": { "name": "entity.name.function.yan" }
       }
     },
-    "constexpr-name": {
-      "match": "\\b(constexpr)\\s+(fn\\s+)?([A-Za-z_]\\w*)(?=\\s*:)",
+    "type-definition": {
+      "match": "\\b(struct|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)",
       "captures": {
         "1": { "name": "keyword.declaration.yan" },
-        "2": { "name": "keyword.declaration.yan" },
-        "3": { "name": "entity.name.constant.yan" }
+        "2": { "name": "entity.name.type.yan" }
       }
+    },
+    "use-path": {
+      "match": "\\b(use)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)",
+      "captures": {
+        "1": { "name": "keyword.control.import.yan" },
+        "2": { "name": "entity.name.namespace.yan" }
+      }
+    },
+    "comptime-name": {
+      "match": "\\b(comptime)\\s+([A-Za-z_][A-Za-z0-9_]*)(?=\\s*:)",
+      "captures": {
+        "1": { "name": "keyword.declaration.yan" },
+        "2": { "name": "entity.name.constant.yan" }
+      }
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.yan",
+          "match": "\\b(if|else|while|loop|for|in|match|return|break|continue|defer)\\b"
+        },
+        {
+          "name": "keyword.declaration.yan",
+          "match": "\\b(fn|let|mut|struct|enum|use|comptime|as)\\b"
+        },
+        {
+          "name": "constant.language.yan",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "support.constant.yan",
+          "match": "\\b(Some|None|Ok|Err)\\b"
+        }
+      ]
+    },
+    "reserved": {
+      "name": "keyword.other.reserved.yan",
+      "match": "\\b(impl|packed)\\b"
+    },
+    "intrinsics": {
+      "name": "support.function.builtin.yan",
+      "match": "\\b(println|print|len|size_of|align_of|exit)\\b"
+    },
+    "prelude-types": {
+      "name": "support.type.yan",
+      "match": "\\b(String|Vec|Box|Option|Result|HashMap)\\b"
+    },
+    "types": {
+      "name": "storage.type.yan",
+      "match": "\\b(i8|i16|i32|i64|u8|u16|u32|u64|usize|isize|f32|f64|bool|char)\\b"
     },
     "numbers": {
       "match": "\\b(?:(0[xX][0-9a-fA-F_]+)|(0[bB][01_]+)|(0[oO][0-7_]+)|([0-9][0-9_]*(?:\\.[0-9][0-9_]*)?(?:[eE][+-]?[0-9]+)?))((?:i8|i16|i32|i64|u8|u16|u32|u64|f32|f64))?\\b",
@@ -96,26 +134,34 @@
     },
     "escapes": {
       "name": "constant.character.escape.yan",
-      "match": "\\\\(?:[ntr0\\\\\"']|x[0-9a-fA-F]{2})"
+      "match": "\\\\(?:[ntr0\\\\\"']|x[0-9a-fA-F]{2}|u\\{[0-9a-fA-F]{1,6}\\})"
+    },
+    "enum-variant": {
+      "name": "punctuation.accessor.double-colon.yan",
+      "match": "::\\s*([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": { "name": "variable.other.enummember.yan" }
+      }
     },
     "function-call": {
-      "match": "\\b(?!(?:if|else|while|loop|for|in|return|break|continue|as|fn|let|mut|constexpr|true|false|i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|bool)\\b)([A-Za-z_]\\w*)(?=\\s*\\()",
+      "match": "\\b(?!(?:if|else|while|loop|for|in|match|return|break|continue|defer|as|fn|let|mut|struct|enum|use|comptime|true|false|impl|packed|i8|i16|i32|i64|u8|u16|u32|u64|usize|isize|f32|f64|bool|char|String|Vec|Box|Option|Result|HashMap|println|print|len|size_of|align_of|exit)\\b)([A-Za-z_][A-Za-z0-9_]*)(?=\\s*\\()",
       "captures": {
         "1": { "name": "variable.function.yan" }
       }
     },
     "operators": {
-      "match": "(->)|(\\.\\.=)|(\\.\\.)|(<<=|>>=)|(==|!=|<=|>=)|(&&|\\|\\|)|(<<|>>)|(\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=)|([+\\-*/%=<>!&|^~])",
+      "match": "(->)|(=>)|(\\.\\.=|\\.\\.)|(::)|(<<=|>>=)|(==|!=|<=|>=)|(&&|\\|\\|)|(<<|>>)|(\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=)|([+\\-*/%<>!&|^~])",
       "captures": {
         "1": { "name": "keyword.operator.arrow.yan" },
-        "2": { "name": "keyword.operator.range.yan" },
+        "2": { "name": "keyword.operator.fat-arrow.yan" },
         "3": { "name": "keyword.operator.range.yan" },
-        "4": { "name": "keyword.operator.assignment.compound.yan" },
-        "5": { "name": "keyword.operator.comparison.yan" },
-        "6": { "name": "keyword.operator.logical.yan" },
-        "7": { "name": "keyword.operator.bitwise.shift.yan" },
-        "8": { "name": "keyword.operator.assignment.compound.yan" },
-        "9": { "name": "keyword.operator.yan" }
+        "4": { "name": "punctuation.accessor.double-colon.yan" },
+        "5": { "name": "keyword.operator.assignment.compound.yan" },
+        "6": { "name": "keyword.operator.comparison.yan" },
+        "7": { "name": "keyword.operator.logical.yan" },
+        "8": { "name": "keyword.operator.bitwise.shift.yan" },
+        "9": { "name": "keyword.operator.assignment.compound.yan" },
+        "10": { "name": "keyword.operator.yan" }
       }
     },
     "punctuation": {
@@ -128,12 +174,17 @@
         { "match": "\\]", "name": "punctuation.section.brackets.end.yan" },
         { "match": ",", "name": "punctuation.separator.comma.yan" },
         { "match": ";", "name": "punctuation.terminator.statement.yan" },
-        { "match": ":", "name": "punctuation.separator.type.yan" }
+        { "match": ":", "name": "punctuation.separator.type.yan" },
+        { "match": "\\.", "name": "punctuation.accessor.yan" }
       ]
+    },
+    "type-name": {
+      "name": "entity.name.type.yan",
+      "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
     },
     "identifiers": {
       "name": "variable.other.yan",
-      "match": "\\b[A-Za-z_]\\w*\\b"
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
     }
   }
 }

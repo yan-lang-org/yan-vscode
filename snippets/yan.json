@@ -9,25 +9,45 @@
     "body": ["fn ${1:name}(${2:x}: ${3:i32}) -> ${4:i32} {", "\t$0", "}"],
     "description": "函数定义"
   },
-  "fn mut ref": {
+  "fn with ref": {
     "prefix": "fnref",
     "body": ["fn ${1:name}(${2:x}: &mut ${3:i32}) {", "\t$0", "}"],
     "description": "带 &mut 引用参数的函数"
   },
-  "constexpr fn": {
-    "prefix": "cfn",
-    "body": ["constexpr fn ${1:name}(${2:n}: i32) -> ${3:i64} {", "\t$0", "}"],
-    "description": "编译期求值函数"
+  "struct": {
+    "prefix": "struct",
+    "body": ["struct ${1:Name} {", "\t${2:x}: ${3:i32},", "}"],
+    "description": "结构体声明（字段必须全部给出）"
   },
-  "constexpr var": {
-    "prefix": "cst",
-    "body": ["constexpr ${1:NAME}: ${2:i32} = ${3:0};"],
-    "description": "编译期常量"
+  "enum": {
+    "prefix": "enum",
+    "body": ["enum ${1:Name} {", "\t${2:Unit},", "\t${3:Payload}(${4:i32}),", "}"],
+    "description": "枚举声明（单元变体 / 带载荷变体）"
   },
-  "constexpr if": {
+  "match": {
+    "prefix": "match",
+    "body": ["match (${1:value}) {", "\t${2:Type}::${3:Variant} => {", "\t\t$0", "\t}", "\t_ => { }", "}"],
+    "description": "match 分支（必须穷尽）"
+  },
+  "comptime const": {
+    "prefix": "comptime",
+    "body": ["comptime ${1:NAME}: ${2:i32} = ${3:0};"],
+    "description": "编译期常量（也可写在函数体内）"
+  },
+  "comptime if": {
     "prefix": "cif",
-    "body": ["constexpr if (${1:cond}) {", "\t$0", "} else {", "\t", "}"],
-    "description": "条件编译（未选中分支不生成代码，但仍过类型检查）"
+    "body": ["comptime if (${1:COND}) {", "\t$0", "} else {", "\t", "}"],
+    "description": "条件编译（未选中分支不生成代码）"
+  },
+  "comptime expr": {
+    "prefix": "cexpr",
+    "body": ["comptime (${1:1 + 2})"],
+    "description": "强制这一段在编译期求值"
+  },
+  "use": {
+    "prefix": "use",
+    "body": ["use ${1:util};"],
+    "description": "引入同目录的 .yan 文件（use a::b 引入子目录）"
   },
   "if": {
     "prefix": "if",
@@ -37,7 +57,7 @@
   "if else": {
     "prefix": "ifelse",
     "body": ["if (${1:cond}) {", "\t$2", "} else {", "\t$0", "}"],
-    "description": "if / else 分支"
+    "description": "if / else 分支（缺 else 时类型是 ()）"
   },
   "while": {
     "prefix": "while",
@@ -49,10 +69,15 @@
     "body": ["for (${1:i} in ${2:0}..${3:n}) {", "\t$0", "}"],
     "description": "for 区间循环（.. 不含末尾，..= 含末尾）"
   },
+  "for in container": {
+    "prefix": "forin",
+    "body": ["for (${1:x} in ${2:items}) {", "\t$0", "}"],
+    "description": "遍历数组 / Vec 的元素（得到副本）"
+  },
   "loop": {
     "prefix": "loop",
     "body": ["loop {", "\t$0", "}"],
-    "description": "无限循环"
+    "description": "无限循环（break 可带值）"
   },
   "let mut": {
     "prefix": "letm",
@@ -61,8 +86,43 @@
   },
   "println": {
     "prefix": "println",
-    "body": ["println(\"${1:}\\n\", ${2:x});"],
+    "body": ["println(\"${1:{}}\", ${2:x});"],
     "description": "打印（{} 是占位符，不是宏）"
+  },
+  "println no newline": {
+    "prefix": "print",
+    "body": ["print(\"${1:{}}\", ${2:x});"],
+    "description": "打印但不换行"
+  },
+  "String": {
+    "prefix": "String",
+    "body": ["let mut ${1:s}: String = String::from(\"${2:}\");"],
+    "description": "拥有所有权的字符串"
+  },
+  "Vec": {
+    "prefix": "vec",
+    "body": ["let mut ${1:v}: Vec<${2:i32}> = Vec::new();"],
+    "description": "动态数组（元素类型必须写出来）"
+  },
+  "Option": {
+    "prefix": "option",
+    "body": ["let ${1:o}: Option<${2:i32}> = ${3:Some(1)};"],
+    "description": "Option<T> 绑定"
+  },
+  "Result": {
+    "prefix": "result",
+    "body": ["let ${1:r}: Result<${2:i32}, ${3:i32}> = ${4:Ok(1)};"],
+    "description": "Result<T, E> 绑定"
+  },
+  "tuple return": {
+    "prefix": "tupled",
+    "body": ["fn ${1:divmod}(${2:a}: i32, ${3:b}: i32) -> (i32, i32) {", "\treturn (${4:a / b}, ${5:a % b});", "}"],
+    "description": "返回多个值（元组，用 r.0 / r.1 取）"
+  },
+  "defer": {
+    "prefix": "defer",
+    "body": ["defer ${1:v}.drop();"],
+    "description": "离开当前作用域时执行（后进先出）"
   },
   "bit slice read": {
     "prefix": "bits",
@@ -76,7 +136,7 @@
   },
   "array": {
     "prefix": "arr",
-    "body": ["let ${1:a}: [${2:i32}; ${3:N}] = [$0];"],
-    "description": "定长数组"
+    "body": ["let ${1:a}: [${2:i32}; ${3:N}] = [${4:0}; ${3:N}];"],
+    "description": "定长数组（长度是类型的一部分）"
   }
 }

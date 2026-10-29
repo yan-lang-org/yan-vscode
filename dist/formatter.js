@@ -6,10 +6,12 @@
  * 语法还不成立的时候也能格式化（编辑器里这是常态），代价是它不会
  * 重排表达式结构 —— 这本来也不是格式化器该干的事。
  *
- * 定下的风格与 examples/ 下的 9 个验收程序一致：
+ * 定下的风格与 yan-lang/examples 下的验收程序一致：
  *   · K&R 花括号：`fn main() {`，`}` 独占一行
  *   · `} else {` / `} else if (cond) {` 不换行
  *   · 语句终结符 `;` 后换行；数组类型 `[i32; N]` 里的 `;` 不换行
+ *   · `.` `::` 两侧紧贴（`p.x` / `d.0` / `Color::Red`），`=>` 两侧留空格
+ *   · 泛型实参 `Vec<u8>` / `Result<i32, i32>` / `<'a>` 的尖括号紧贴
  *   · 相邻行的行尾注释对齐到同一列
  */
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -17,10 +19,10 @@ exports.formatYan = formatYan;
 exports.canFormatFragment = canFormatFragment;
 exports.commonIndent = commonIndent;
 const lexer_1 = require("./lexer");
-const CONTROL_BEFORE_PAREN = new Set(['if', 'while', 'for', 'constexpr']);
+const CONTROL_BEFORE_PAREN = new Set(['if', 'while', 'for', 'match', 'comptime']);
 const BINARY_OPS = new Set(['+', '-', '*', '/', '%', '=', '==', '!=', '<', '>', '<=', '>=',
     '&&', '||', '&', '|', '^', '<<', '>>', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=',
-    '<<=', '>>=', '->', 'as']);
+    '<<=', '>>=', '->', '=>', 'as']);
 const UNARY_CANDIDATES = new Set(['-', '&', '+', '*']);
 /** 这些 token 可以跟在刚写完的 `}` 后面（否则 `}` 必须先单独成行） */
 const KEEP_ON_BRACE_LINE = new Set(['else', ';', '}', ')', ']', ',']);
@@ -32,8 +34,16 @@ function unaryPosition(prev2) {
         || prev2 === '~' || prev2 === '&mut' || prev2 === 'return'
         || prev2 === 'in' || BINARY_OPS.has(prev2);
 }
+/** `Vec<T>` / `Option<T>` 的 `<`：前一个 token 是大写开头的类型名 */
+function isTypeName(prev) {
+    return prev !== null && /^[A-Z][A-Za-z0-9_]*$/.test(prev);
+}
+/** 生命周期 `'a`（字符字面量 `'a'` 以引号结尾，不算） */
+function isLifetime(text) {
+    return text !== null && text.startsWith("'") && !text.endsWith("'");
+}
 /** 两个相邻 token 之间要不要留一个空格 */
-function gapBetween(prev, prev2, cur, bracket) {
+function gapBetween(prev, prev2, cur, bracket, angle = 0, next = null, genericClose = false) {
     if (prev === null) {
         return false;
     }
@@ -43,6 +53,25 @@ function gapBetween(prev, prev2, cur, bracket) {
     }
     // 开括号 / 一元前缀后面不留空格
     if (prev === '(' || prev === '[' || prev === '!' || prev === '~') {
+        return false;
+    }
+    // `.` 是成员访问/元组下标：两侧都紧贴（`p.x` / `d.0`）
+    if (cur === '.' || prev === '.') {
+        return false;
+    }
+    // `::` 是路径分隔符：两侧都紧贴（`Color::Red` / `use calc::ops`）
+    if (cur === '::' || prev === '::') {
+        return false;
+    }
+    // 泛型实参的尖括号：`Vec<u8>` / `Result<i32, i32>` / `make<'a>`
+    if (cur === '<' && (isTypeName(prev) || isLifetime(next))) {
+        return false;
+    }
+    if (angle > 0 && (prev === '<' || prev === '>' || prev === '>>' || cur === '>' || cur === '>>')) {
+        return false;
+    }
+    // `make<'a>(...)`：泛型右尖括号后面的 `(` 是参数表，不是调用
+    if (cur === '(' && genericClose) {
         return false;
     }
     // `[` 有两种身份：紧贴的话是下标或位访问（`a[i]` `x[7:0]` `[[i32; 4]; 8]`），
@@ -61,7 +90,7 @@ function gapBetween(prev, prev2, cur, bracket) {
     if (UNARY_CANDIDATES.has(prev) && unaryPosition(prev2)) {
         return false;
     }
-    // `if (` `while (` `for (` `constexpr if (` 前留空格；函数调用 `println(` 不留；
+    // `if (` `while (` `for (` `match (` `comptime if (` 前留空格；函数调用 `println(` 不留；
     // 其余（`, (` `= (` `| (`）留一个空格
     if (cur === '(') {
         if (CONTROL_BEFORE_PAREN.has(prev)) {
@@ -73,7 +102,7 @@ function gapBetween(prev, prev2, cur, bracket) {
 }
 /** 前一个 token 是不是一个完整的操作数结尾（决定后面的 `[` `(` 要不要贴上） */
 function isOperandEnd(prev) {
-    return /[A-Za-z0-9_]$/.test(prev) || prev === ')' || prev === ']';
+    return /[A-Za-z0-9_'"\]]$/.test(prev) || prev === ')';
 }
 /** 显示宽度：CJK 与全角标点按 2 列算，其余按 1 列 */
 function dispWidth(s) {
@@ -100,12 +129,17 @@ class Printer {
         this.parts = [];
         this.comment = null;
         this.indent = 0;
+        /** 续行缩进：这一行是从 `(` / `[` 里面开始的，多缩一级（长调用拆行时不贴左边） */
+        this.contIndent = 0;
         this.pendingBlank = 0;
         this.bracket = 0;
         this.paren = 0;
+        /** 当前位于第几层泛型实参 `<...>` 里（`Vec<u8>` / `Result<i32, i32>`） */
+        this.angle = 0;
         this.prev = null;
         this.prev2 = null;
         this.justClosed = false;
+        this.justClosedGeneric = false;
         this.semiPending = false;
         this.toks = (0, lexer_1.tokenize)(src);
         this.opt = opt;
@@ -135,6 +169,10 @@ class Printer {
             if (nl >= 1 && this.hasContent()) {
                 this.flush();
             }
+            // 这一行是从括号/下标里面续上的（长调用、长数组字面量）：多缩一级
+            if (!this.hasContent()) {
+                this.contIndent = this.paren > 0 || this.bracket > 0 ? 1 : 0;
+            }
             if (isComment) {
                 this.emitComment(t);
                 i++;
@@ -148,14 +186,14 @@ class Printer {
                 i++;
             }
             else if (t.text === ';') {
-                this.push(t);
+                this.push(t, this.toks[i + 1] ?? null);
                 if (this.bracket === 0 && this.paren === 0) {
                     this.semiPending = true; // 真正的换行交给下一个 token 决定
                 }
                 i++;
             }
             else {
-                this.push(t);
+                this.push(t, this.toks[i + 1] ?? null);
                 if (t.text === '[') {
                     this.bracket++;
                 }
@@ -223,9 +261,31 @@ class Printer {
         let s = '{';
         let p = null;
         let p2 = null;
+        let angle = this.angle;
+        let closedGeneric = false;
         for (let k = open + 1; k < close; k++) {
             const text = this.toks[k].text;
-            s += (p === null ? ' ' : gapBetween(p, p2, text, this.bracket) ? ' ' : '') + text;
+            const next = k + 1 < close ? this.toks[k + 1].text : null;
+            s += (p === null ? ' ' : gapBetween(p, p2, text, this.bracket, angle, next, closedGeneric) ? ' ' : '') + text;
+            if (text === '<' && (isTypeName(p) || isLifetime(next))) {
+                angle++;
+                closedGeneric = false;
+            }
+            else if (text === '>') {
+                if (angle > 0) {
+                    angle--;
+                    closedGeneric = true;
+                }
+            }
+            else if (text === '>>') {
+                if (angle > 0) {
+                    angle = Math.max(0, angle - 2);
+                    closedGeneric = true;
+                }
+            }
+            else {
+                closedGeneric = false;
+            }
             p2 = p;
             p = text;
         }
@@ -246,15 +306,37 @@ class Printer {
     hasContent() {
         return this.parts.length > 0 || this.comment !== null;
     }
-    push(t) {
+    push(t, next = null) {
+        const prevText = this.prev ? this.prev.text : null;
         if (this.parts.length === 0) {
             this.parts.push(t.text);
         }
         else {
             const need = t.text === 'else'
                 ? true
-                : gapBetween(this.prev ? this.prev.text : null, this.prev2 ? this.prev2.text : null, t.text, this.bracket);
+                : gapBetween(prevText, this.prev2 ? this.prev2.text : null, t.text, this.bracket, this.angle, next ? next.text : null, this.justClosedGeneric);
             this.parts.push((need ? ' ' : '') + t.text);
+        }
+        // 泛型尖括号深度：只在 `<` 前面是大写类型名（或后面是生命周期）时才算泛型，
+        // 否则 `a < b` 的比较会被误判成类型实参。
+        if (t.text === '<' && (isTypeName(prevText) || isLifetime(next ? next.text : null))) {
+            this.angle++;
+            this.justClosedGeneric = false;
+        }
+        else if (t.text === '>') {
+            if (this.angle > 0) {
+                this.angle--;
+                this.justClosedGeneric = true;
+            }
+        }
+        else if (t.text === '>>') {
+            if (this.angle > 0) {
+                this.angle = Math.max(0, this.angle - 2);
+                this.justClosedGeneric = true;
+            }
+        }
+        else {
+            this.justClosedGeneric = false;
         }
         this.prev2 = this.prev;
         this.prev = t;
@@ -266,13 +348,14 @@ class Printer {
         }
         this.emitBlanks();
         this.out.push({
-            indent: this.indent,
+            indent: this.indent + this.contIndent,
             code: this.parts.join(''),
             comment: this.comment ?? undefined,
         });
         this.parts = [];
         this.comment = null;
         this.justClosed = false;
+        this.justClosedGeneric = false;
         this.semiPending = false;
     }
     emitBlanks() {
@@ -301,7 +384,7 @@ class Printer {
         }
         else {
             this.emitBlanks();
-            this.out.push({ indent: this.indent, code: '', comment: t.text, origCol: t.col });
+            this.out.push({ indent: this.indent + this.contIndent, code: '', comment: t.text, origCol: t.col });
         }
         this.prev2 = this.prev;
         this.prev = t;

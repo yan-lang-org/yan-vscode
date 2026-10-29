@@ -46,7 +46,7 @@ function readOptions(doc, options) {
         maxBlankLines: cfg.get('maxBlankLines', 1),
         alignTrailingComments: cfg.get('alignTrailingComments', true),
         maxColumn: cfg.get('maxColumn', 100),
-        keepSingleLineBlocks: cfg.get('keepSingleLineBlocks', false),
+        keepSingleLineBlocks: cfg.get('keepSingleLineBlocks', true),
         eol: doc.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n',
     };
 }

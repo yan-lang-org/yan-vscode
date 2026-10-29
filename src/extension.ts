@@ -11,7 +11,7 @@ function readOptions(doc: vscode.TextDocument, options: vscode.FormattingOptions
     maxBlankLines: cfg.get<number>('maxBlankLines', 1),
     alignTrailingComments: cfg.get<boolean>('alignTrailingComments', true),
     maxColumn: cfg.get<number>('maxColumn', 100),
-    keepSingleLineBlocks: cfg.get<boolean>('keepSingleLineBlocks', false),
+    keepSingleLineBlocks: cfg.get<boolean>('keepSingleLineBlocks', true),
     eol: doc.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n',
   };
 }

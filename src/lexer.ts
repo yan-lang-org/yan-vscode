@@ -1,12 +1,25 @@
 /**
  * Yan 词法器 —— 只服务于编辑器（高亮之外的格式化功能）。
  *
- * 它比编译器的 lexer（yanlang/lexer.py）更宽松：遇到不认识的东西也不报错，
+ * 它比编译器的 lexer（selfhost/lexv.yan）更宽松：遇到不认识的东西也不报错，
  * 因为格式化器必须能在「代码写了一半、语法还不成立」的时候照常工作。
- * 字符串与注释整体成 token，因此内部的 { } [ ] 不会干扰括号配对。
+ * 字符串、字符字面量与注释整体成 token，因此内部的 { } [ ] 不会干扰括号配对。
+ *
+ * 与 yan 0.11 对齐的几处细节：
+ *   · 字符字面量 'a' / '\n' / '\x41' / '\u{4E2D}'，与生命周期 'a 靠「有没有闭合引号」区分
+ *   · 块注释**可以嵌套**（SPEC §1.7 C1）
+ *   · `::` `=>` `.` `..` `..=` 各自是独立 token，格式化器靠它决定间距
  */
 
-export type TokKind = 'ident' | 'number' | 'string' | 'op' | 'comment-line' | 'comment-block';
+export type TokKind =
+  | 'ident'
+  | 'number'
+  | 'string'
+  | 'char'
+  | 'lifetime'
+  | 'op'
+  | 'comment-line'
+  | 'comment-block';
 
 export interface Tok {
   kind: TokKind;
@@ -21,11 +34,11 @@ export interface Tok {
 
 // 长的排在前面，保证 `<<=` 不会被当成 `<<` 再当成 `<`
 const OPS: string[] = [
-  '<<=', '>>=', '..=', '->',
-  '==', '!=', '<=', '>=', '&&', '||', '<<', '>>',
+  '<<=', '>>=', '..=', '->', '=>',
+  '==', '!=', '<=', '>=', '&&', '||', '<<', '>>', '::',
   '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '..',
   '+', '-', '*', '/', '%', '=', '<', '>', '!', '&', '|', '^', '~',
-  '(', ')', '{', '}', '[', ']', ',', ';', ':',
+  '(', ')', '{', '}', '[', ']', ',', ';', ':', '.',
 ];
 
 const RE_IDENT = /^[A-Za-z_][A-Za-z0-9_]*/;
@@ -33,7 +46,8 @@ const RE_NUMBER =
   /^(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|[0-9][0-9_]*(?:\.[0-9][0-9_]*)?(?:[eE][+-]?[0-9]+)?)(?:i8|i16|i32|i64|u8|u16|u32|u64|f32|f64)?/;
 const RE_SPACE = /^[ \t\r\n]+/;
 const RE_LINE_COMMENT = /^\/\/[^\n]*/;
-const RE_BLOCK_COMMENT = /^\/\*[\s\S]*?(?:\*\/|$)/;
+const RE_CHAR = /^'(?:\\(?:[ntr0\\"']|x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]{1,6}\})|[^'\\\n])'/;
+const RE_LIFETIME = /^'[A-Za-z_][A-Za-z0-9_]*/;
 const RE_STRING_CLOSED = /^"(?:[^"\\]|\\[\s\S])*"/;
 const RE_STRING_OPEN = /^"[^\n]*/;
 const RE_AMP_MUT = /^&mut(?![A-Za-z0-9_])/;
@@ -70,10 +84,19 @@ export function tokenize(src: string): Tok[] {
       continue;
     }
 
-    const bc = RE_BLOCK_COMMENT.exec(rest);
-    if (bc) {
-      toks.push(mk('comment-block', bc[0], pos, line, lineStart));
-      eat(bc[0]);
+    // 块注释可以嵌套：手工扫描，数到深度 0 才是结尾；未闭合就吃到文件末
+    if (rest.startsWith('/*')) {
+      const end = scanBlockComment(src, pos);
+      const text = src.slice(pos, end);
+      toks.push(mk('comment-block', text, pos, line, lineStart));
+      eat(text);
+      continue;
+    }
+
+    const ch = RE_CHAR.exec(rest);
+    if (ch) {
+      toks.push(mk('char', ch[0], pos, line, lineStart));
+      eat(ch[0]);
       continue;
     }
 
@@ -81,6 +104,13 @@ export function tokenize(src: string): Tok[] {
     if (st) {
       toks.push(mk('string', st[0], pos, line, lineStart));
       eat(st[0]);
+      continue;
+    }
+
+    const lt = RE_LIFETIME.exec(rest);
+    if (lt) {
+      toks.push(mk('lifetime', lt[0], pos, line, lineStart));
+      eat(lt[0]);
       continue;
     }
 
@@ -130,6 +160,27 @@ export function tokenize(src: string): Tok[] {
       col: start - ls,
     };
   }
+}
+
+/** 从 pos（指向 `/*`）扫到配对的 `*\/` 之后；支持嵌套，未闭合返回 src.length。 */
+function scanBlockComment(src: string, pos: number): number {
+  let depth = 0;
+  let i = pos;
+  while (i < src.length) {
+    if (src.startsWith('/*', i)) {
+      depth++;
+      i += 2;
+    } else if (src.startsWith('*/', i)) {
+      depth--;
+      i += 2;
+      if (depth === 0) {
+        return i;
+      }
+    } else {
+      i++;
+    }
+  }
+  return src.length;
 }
 
 function countNewlines(s: string): number {
