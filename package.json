@@ -2,7 +2,7 @@
   "name": "yan",
   "displayName": "砚 Yan 语言",
   "description": "砚 Yan 语言的语法高亮与格式化支持（.yan，对齐 yan 0.11）",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "yanlang",
   "license": "MIT",
   "repository": {

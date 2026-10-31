@@ -107,7 +107,8 @@ npm run compile      # src/*.ts → dist/*.js
 ```
 
 `src/` 三个文件：`lexer.ts`（词法）、`formatter.ts`（重排）、`extension.ts`（注册 provider）。
-`tools/make_icon.py` 生成 `images/icon.png`（纯标准库手写 PNG，不依赖 Pillow）。
+`tools/make_icon.py` 从 `images/yan-logo.png` 缩出 `images/icon.png`（128x128，纯标准库，不依赖 Pillow）。
+`images/yan-logo.png` 与 `yan-web/assets/yan-logo.png` 是同一份 logo；换 logo 时覆盖源图再跑一次脚本。
 
 改完记得跑自检（`node` / `npm` 都不在仓库里，用自己的环境）：
 

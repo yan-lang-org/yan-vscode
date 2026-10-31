@@ -8,3 +8,4 @@ tsconfig.json
 .gitignore
 *.vsix
 package-lock.json
+images/yan-logo.png
